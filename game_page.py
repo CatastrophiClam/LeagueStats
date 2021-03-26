@@ -2,7 +2,7 @@ import json
 
 from champion_data import get_champ_id_map
 from request import get_acs_response
-
+from retry import retry_on_decode_error
 
 GAME_PAGE_URL = "https://acs.leagueoflegends.com/v1/stats/game/NA1"
 champion_id_map = get_champ_id_map()
@@ -95,6 +95,7 @@ class GameResponse:
         ) for participant_obj in obj["participants"]]
 
 
+@retry_on_decode_error
 def get_game_response(game_id, id_token):
     url = f"{GAME_PAGE_URL}/{game_id}"
     resp = get_acs_response(url, id_token)
@@ -102,6 +103,7 @@ def get_game_response(game_id, id_token):
     try:
         obj = json.loads(resp.text)
     except json.decoder.JSONDecodeError:
+        print(url)
         print(resp.text)
         raise
     return GameResponse(obj)

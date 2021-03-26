@@ -1,8 +1,10 @@
 import json
+
+from player import PlayerInfo
 from request import get_acs_response
+from retry import retry_on_decode_error
 
-
-PLAYER_GAMES_PAGE_URL = "https://acs.leagueoflegends.com/v1/stats/player_history/NA1"
+PLAYER_GAMES_PAGE_URL = "https://acs.leagueoflegends.com/v1/stats/player_history"
 NUM_FETCH_GAMES = 20
 
 class Game:
@@ -13,9 +15,11 @@ class Game:
         self.season_id = obj["seasonId"]
         self.game_version = obj["gameVersion"]
         self.game_type = obj["gameType"]
+        self.creation_time = float(obj["gameCreation"])
+        self.game_mode = obj["gameMode"]
 
     def __str__(self):
-        return f"{self.game_type} game {self.game_id} lasting {self.game_duration//60}m {self.game_duration%60}s"
+        return f"{self.game_type} {self.game_version} game {self.game_id} lasting {self.game_duration//60}m {self.game_duration%60}s"
 
 
 class GamesListResponse:
@@ -31,8 +35,15 @@ class GamesListResponse:
         return f"Games list with games {self.game_index_begin} to {self.game_index_end} out of {self.game_count} total games"
 
 
-def get_games_list_response(player_id, begin_ind, id_token):
-    url = f"{PLAYER_GAMES_PAGE_URL}/{player_id}?begIndex={begin_ind}&endIndex={begin_ind+NUM_FETCH_GAMES}"
-    resp = get_acs_response(url, id_token)
-    obj = json.loads(resp.text)
+@retry_on_decode_error
+def get_games_list_response(player: PlayerInfo, begin_ind):
+    url = f"{PLAYER_GAMES_PAGE_URL}/{player.region}/{player.pid}?begIndex={begin_ind}&endIndex={begin_ind+NUM_FETCH_GAMES}"
+    resp = get_acs_response(url, player.token)
+    obj = None
+    try:
+        obj = json.loads(resp.text)
+    except json.decoder.JSONDecodeError:
+        print(url)
+        print(resp.text)
+        raise
     return GamesListResponse(obj)
