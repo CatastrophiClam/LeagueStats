@@ -1,7 +1,7 @@
 import json
 from Scrape.element import get_response
 
-DATA_URL = "http://ddragon.leagueoflegends.com/cdn/11.6.1/data/en_US/champion.json"
+DATA_URL = "http://ddragon.leagueoflegends.com/cdn/11.7.1/data/en_US/champion.json"
 champ_id_map = {}
 
 
